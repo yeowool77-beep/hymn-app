@@ -10,10 +10,9 @@ const getAi = () => {
   // 환경 변수에서 API 키 읽기
   let apiKey = import.meta.env.VITE_GEMINI_API_KEY;
 
-  // 임시 fallback (환경 변수가 로드되지 않을 경우)
+  // No fallback for leaked key
   if (!apiKey) {
-    apiKey = 'AIzaSyBlnO46WxKt35HgdVgfu_gVdtGapEE6Kag';
-    console.warn('⚠️  Using fallback API key. Please check .env.local file');
+    console.warn('⚠️  VITE_GEMINI_API_KEY is missing. Please check .env.local file');
   }
 
   console.log('🔑 API Key Check:', {
@@ -132,6 +131,43 @@ export const generateSunoPrompt = async (prefs: UserPreferences): Promise<Prompt
   }
 };
 
+export const updateStylePrompt = async (theme: string, genre: string, vibe: string): Promise<string> => {
+  const ai = getAi();
+  const modelId = "gemini-3-flash-preview";
+
+  const systemInstruction = `
+    You are 'SacredArchitect Global Search', a world-class producer specializing in 'Sophisticated Easy Listening' and 'Emotional Ambience'.
+    Generate a 'stylePrompt' for Suno AI using these guidelines:
+    
+    1. MUSIC PHILOSOPHY: Focus on 'Warmth', 'Space', and 'Emotional Depth'. 
+       - Avoid: Sharp high frequencies, overly aggressive beats, or jarring transitions.
+       - Embrace: Soft transients, lush reverbs, warm analog tape saturation, and organic instrumentation.
+    2. Style Components:
+       - Instruments: 'Muted Rhodes piano', 'Soft felt piano', 'Espressivo strings', 'Warm analog pads', 'Deep sub-bass', 'Organic shakers'.
+       - Aesthetics: 'Hazy morning light', 'Sophisticated minimalist', 'Cinematic intimacy', 'Soulful sanctuary'.
+       - Production: 'Humanized groove', 'Wide stereo image', 'Subtle tape hiss', 'Gentle sidechaining'.
+    3. The output must be a single string containing the style prompt.
+  `;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: modelId,
+      contents: `Generate an optimized Suno style prompt for the hymn: ${theme}. 
+                Genre: ${genre}.
+                Vibe: ${vibe}.
+                Make it trendy, modern, and non-fatiguing for all-day listening.`,
+      config: {
+        systemInstruction,
+      },
+    });
+
+    return response.text?.trim() || "";
+  } catch (error: any) {
+    console.error("Update Style Error:", error);
+    return "";
+  }
+};
+
 // 🎨 새로운 이미지 생성 방식: 배경만 생성 후 Canvas로 텍스트 합성
 export const generateMultiLanguageArtSequential = async (promptData: PromptData, lang: keyof MultiCovers): Promise<string | null> => {
   const ai = getAi();
@@ -199,54 +235,45 @@ export const generateMultiLanguageArtSequential = async (promptData: PromptData,
 
   const config = langConfig[lang];
 
-  // 한국어만 Canvas 오버레이 사용, 영어/스페인어는 AI 텍스트 생성
-  const useCanvasOverlay = lang === 'ko';
+  // 영문/스페인어는 빠른 생성을 위해 flash, 한국어는 고품질 타이포그래피를 위해 pro 모델 사용 (아이디어 2번 적용)
+  const imageModelId = lang === 'ko' ? "gemini-3-pro-image-preview" : "gemini-2.5-flash-image";
 
-  let visualPrompt: string;
+  // 한국어 전용 프롬프트 명시 (하이엔드 타이포그래피 지시)
+  const textPromptKorean = `
+Integrate the following Korean text beautifully and artistically into the design: "${title}".
+Make the Hangul (Korean alphabet) typography look like a professional, high-end, award-winning graphic design masterpiece.
+The text should be a core part of the composition, not just an overlay.
+  `.trim();
 
-  if (useCanvasOverlay) {
-    // 한국어: 텍스트 없는 배경만 (고품질 프롬프트 템플릿 적용)
-    visualPrompt = `
-A professional, high-fidelity album cover art for a sacred hymn titled "${title}".
-
-Genre aesthetics: ${genre}.
-Atmosphere: ${vibe}.
-Visual style: Inspired by ${era} design elements combined with ${config.style}.
-
-Materiality and texture: Emphasis on physical medium (e.g., visible film grain, oil paint brushstrokes, or clean vector minimalism depending on style).
-Lighting: Dramatic cinematic lighting, high contrast, artistic composition with depth.
-Composition: Rule of thirds, balanced negative space, professional art direction.
-
-CRITICAL: NO TEXT, NO LETTERS, NO WORDS on the image.
-This is a background-only image for text overlay.
-
-Quality: 4k resolution, masterpiece quality, award-winning art direction.
-    `.trim();
-  } else {
-    // 영어/스페인어: AI가 텍스트 포함 생성 (고품질 프롬프트 템플릿 적용)
-    visualPrompt = `
-A professional, high-fidelity album cover art for a sacred hymn titled "${title}".
-
-Genre aesthetics: ${genre}.
-Atmosphere: ${vibe}.
-Visual style: Inspired by ${era} design elements combined with ${config.style}.
-
+  // 영어/스페인어 전용 텍스트 프롬프트
+  const textPromptOther = `
 Typography: Include the text "${title}" in elegant, legible typography.
 The text must be correctly spelled and professionally integrated into the design.
+  `.trim();
+
+  const textPrompt = lang === 'ko' ? textPromptKorean : textPromptOther;
+
+  const visualPrompt = `
+A professional, high-fidelity album cover art for a sacred hymn titled "${title}".
+
+Genre aesthetics: ${genre}.
+Atmosphere: ${vibe}.
+Visual style: Inspired by ${era} design elements combined with ${config.style}.
+
+${textPrompt}
 
 Materiality and texture: Emphasis on physical medium (e.g., visible film grain, oil paint brushstrokes, or clean vector minimalism depending on style).
 Lighting: Dramatic cinematic lighting, high contrast, artistic composition with depth.
 Composition: Rule of thirds, balanced negative space, professional art direction.
 
 Quality: 4k resolution, masterpiece quality, award-winning art direction.
-    `.trim();
-  }
+  `.trim();
 
   try {
-    console.log(`🎨 Generating ${lang} (Canvas: ${useCanvasOverlay})...`);
+    console.log(`🎨 Generating ${lang} with model ${imageModelId}...`);
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash-image",
+      model: imageModelId,
       contents: { parts: [{ text: visualPrompt }] },
       config: {
         imageConfig: {
@@ -270,21 +297,8 @@ Quality: 4k resolution, masterpiece quality, award-winning art direction.
       return null;
     }
 
-    // 한국어만 Canvas 텍스트 합성
-    if (useCanvasOverlay) {
-      console.log(`✅ Adding Korean text overlay...`);
-      try {
-        return await overlayTextOnImage(imageBase64, title, config.font, config.color);
-      } catch (e) {
-        console.error(`Canvas failed:`, e);
-        return `data:image/png;base64,${imageBase64}`;
-      }
-    } else {
-      // 영어/스페인어는 AI 생성 이미지 그대로
-      console.log(`✅ AI text for ${lang} complete`);
-      return `data:image/png;base64,${imageBase64}`;
-    }
-
+    console.log(`✅ AI text for ${lang} complete`);
+    return `data:image/png;base64,${imageBase64}`;
 
   } catch (e) {
     console.warn(`Art generation failed for ${lang}`, e);
@@ -292,169 +306,4 @@ Quality: 4k resolution, masterpiece quality, award-winning art direction.
   }
 };
 
-// Canvas를 사용하여 이미지 위에 텍스트 오버레이 (개선된 버전)
-async function overlayTextOnImage(
-  base64Image: string,
-  text: string,
-  font: string,
-  color: string
-): Promise<string> {
-  console.log(`🎨 Starting text overlay: "${text}"`);
-
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-
-    img.onload = () => {
-      try {
-        console.log(`📐 Image loaded: ${img.width}x${img.height}`);
-
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-
-        if (!ctx) {
-          throw new Error('Canvas context not available');
-        }
-
-        // 캔버스 크기 설정
-        canvas.width = img.width;
-        canvas.height = img.height;
-
-        // 배경 이미지 그리기
-        ctx.drawImage(img, 0, 0);
-
-        // 텍스트 스타일 설정
-        ctx.font = font;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-
-        // 텍스트 위치
-        const centerX = canvas.width / 2;
-        const centerY = canvas.height / 2;
-
-        // 📐 레이아웃 타입 결정 (랜덤 선택)
-        const layouts = ['CENTRIC', 'EDITORIAL_BOTTOM', 'MODERN_SIDE'];
-        const layout = layouts[Math.floor(Math.random() * layouts.length)];
-
-        // 텍스트 측정
-        const textWidth = ctx.measureText(text).width;
-        const fontSize = parseInt(font);
-
-        let targetX = canvas.width / 2;
-        let targetY = canvas.height / 2;
-        let textAlign: CanvasTextAlign = 'center';
-
-        if (layout === 'EDITORIAL_BOTTOM') {
-          targetX = 60;
-          targetY = canvas.height - 150;
-          textAlign = 'left';
-        } else if (layout === 'MODERN_SIDE') {
-          targetX = canvas.width - (textWidth / 2) - 60;
-          targetY = 100;
-          textAlign = 'center';
-        }
-
-        ctx.textAlign = textAlign;
-
-        // 🎨 배경 그래픽 요소 (디자인 디테일)
-        const addDesignDetails = () => {
-          ctx.save();
-
-          // 1. 카탈로그 번호 (우측 하단 세로 또는 가로)
-          ctx.font = "14px 'Inter', sans-serif";
-          ctx.fillStyle = "rgba(255, 255, 255, 0.7)";
-          ctx.textAlign = "right";
-          ctx.fillText("SACRED-ARCHITECT // 2025-VOL-01", canvas.width - 40, canvas.height - 40);
-
-          // 2. 가상의 로고 / 심볼
-          ctx.strokeStyle = "rgba(255, 255, 255, 0.8)";
-          ctx.lineWidth = 2;
-          ctx.beginPath();
-          ctx.arc(40, 40, 15, 0, Math.PI * 2);
-          ctx.stroke();
-          ctx.beginPath();
-          ctx.moveTo(40, 30);
-          ctx.lineTo(40, 50);
-          ctx.moveTo(30, 40);
-          ctx.lineTo(50, 40);
-          ctx.stroke();
-
-          // 3. 얇은 디자인 라인
-          ctx.beginPath();
-          ctx.strokeStyle = "rgba(255, 255, 255, 0.3)";
-          ctx.moveTo(40, 70);
-          ctx.lineTo(40, canvas.height - 100);
-          ctx.stroke();
-
-          ctx.restore();
-        };
-
-        // 🎨 텍스트 배경 박스 및 효과
-        const drawTextGroup = () => {
-          const padding = 40;
-          const boxWidth = textWidth + padding * 2;
-          const boxHeight = fontSize * 1.8;
-
-          ctx.save();
-
-          // 레이아웃에 따른 좌표 조정
-          let rectX: number;
-          if (textAlign === 'left') {
-            rectX = targetX - 20;
-          } else if (textAlign === 'center') {
-            rectX = targetX - boxWidth / 2;
-          } else {
-            rectX = targetX - boxWidth + 20;
-          }
-          const rectY = targetY - boxHeight / 2;
-
-          // Glassmorphism effect
-          ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
-          ctx.filter = 'blur(10px)';
-          ctx.fillRect(rectX, rectY, boxWidth, boxHeight);
-          ctx.filter = 'none';
-
-          ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
-          ctx.lineWidth = 1;
-          ctx.strokeRect(rectX, rectY, boxWidth, boxHeight);
-
-          // 메인 텍스트
-          ctx.font = font;
-          ctx.fillStyle = '#ffffff';
-          ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-          ctx.shadowBlur = 10;
-          ctx.fillText(text, targetX, targetY);
-
-          // 서브 텍스트 (찬송가 번호 등 - 가상 데이터)
-          ctx.font = "20px 'Inter', sans-serif";
-          ctx.globalAlpha = 0.8;
-          ctx.fillText("HYMN COLLECTION", targetX, targetY + (fontSize * 0.8));
-
-          ctx.restore();
-        };
-
-        addDesignDetails();
-        drawTextGroup();
-
-        console.log('✅ Designer Album Overlay complete!');
-
-        console.log('✅ Text overlay complete!');
-
-        // 완성된 이미지를 base64로 변환
-        const result = canvas.toDataURL('image/png');
-        resolve(result);
-
-      } catch (error) {
-        console.error('Canvas drawing error:', error);
-        reject(error);
-      }
-    };
-
-    img.onerror = (error) => {
-      console.error('Image load error:', error);
-      reject(new Error('Failed to load image'));
-    };
-
-    img.src = `data:image/png;base64,${base64Image}`;
-  });
-}
 

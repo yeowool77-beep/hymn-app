@@ -6,7 +6,7 @@ import { BatchGenerator } from './components/BatchGenerator';
 import { ProgressDashboard } from './components/ProgressDashboard';
 import { PromptData, UserPreferences, HistoryItem, MultiCovers } from './types';
 import { GLOBAL_HYMN_TREASURY, HymnDef } from './constants';
-import { generateSunoPrompt, generateMultiLanguageArtSequential } from './services/geminiService';
+import { generateSunoPrompt, generateMultiLanguageArtSequential, updateStylePrompt } from './services/geminiService';
 import { Cross, Menu, RefreshCw, CheckCircle, Grid, List, Zap } from 'lucide-react';
 
 const DEFAULT_PREFS: UserPreferences = {
@@ -85,6 +85,44 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem(TREASURY_STORAGE_KEY, JSON.stringify(dynamicTreasury));
   }, [dynamicTreasury]);
+
+  // Reactive Genre Update
+  useEffect(() => {
+    const handleGenreChangeEffect = async () => {
+      if (!currentPrompt || currentPrompt.tags.genre === prefs.genre) return;
+
+      console.log(`🎵 Genre changed to: ${prefs.genre}. Updating prompt...`);
+      setLoadingStep(`Updating Style for ${prefs.genre}...`);
+
+      try {
+        const newStyle = await updateStylePrompt(
+          currentPrompt.titles.ko || currentPrompt.title,
+          prefs.genre,
+          prefs.vibe
+        );
+
+        if (newStyle) {
+          setCurrentPrompt(prev => prev ? {
+            ...prev,
+            stylePrompt: newStyle,
+            tags: { ...prev.tags, genre: prefs.genre }
+          } : null);
+
+          setHistory(prev => prev.map(h =>
+            (h.id === currentPrompt.id)
+              ? { ...h, stylePrompt: newStyle, tags: { ...h.tags, genre: prefs.genre } }
+              : h
+          ));
+        }
+      } catch (error) {
+        console.error("Genre Update Error:", error);
+      } finally {
+        setLoadingStep('');
+      }
+    };
+
+    handleGenreChangeEffect();
+  }, [prefs.genre, prefs.vibe]);
 
   const handleGenerate = async () => {
     if (!prefs.hymnTheme) return;
