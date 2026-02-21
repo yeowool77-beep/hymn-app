@@ -238,11 +238,11 @@ export const generateMultiLanguageArtSequential = async (promptData: PromptData,
   // 영문/스페인어는 빠른 생성을 위해 flash, 한국어는 고품질 타이포그래피를 위해 pro 모델 사용 (아이디어 2번 적용)
   const imageModelId = lang === 'ko' ? "gemini-3-pro-image-preview" : "gemini-2.5-flash-image";
 
-  // 한국어 전용 프롬프트 명시 (하이엔드 타이포그래피 지시)
+  // 한국어 전용 프롬프트 명시 (하이엔드 타이포그래피 지시 + 성스러운 분위기 강조)
   const textPromptKorean = `
-Integrate the following Korean text beautifully and artistically into the design: "${title}".
-Make the Hangul (Korean alphabet) typography look like a professional, high-end, award-winning graphic design masterpiece.
-The text should be a core part of the composition, not just an overlay.
+Integrate the following Korean text beautifully and reverently into the design: "${title}".
+Make the Hangul (Korean alphabet) typography look like a sacred, deeply spiritual, and ethereal masterpiece.
+The text should feel divine and be a core part of the holy composition, not just a modern graphic design overlay.
   `.trim();
 
   // 영어/스페인어 전용 텍스트 프롬프트
