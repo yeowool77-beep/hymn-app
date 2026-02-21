@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LocalStorage 초기화</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 40px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: system-ui, -apple-system, sans-serif;
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .container {
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 60px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 600px;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            margin: 0 0 20px 0;
+        }
+
+        p {
+            font-size: 1.1em;
+            opacity: 0.9;
+            margin: 15px 0;
+        }
+
+        button {
+            margin: 20px 10px;
+            padding: 15px 30px;
+            background: #10b981;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-weight: bold;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        button:hover {
+            transform: scale(1.05);
+            background: #059669;
+        }
+
+        button.danger {
+            background: #ef4444;
+        }
+
+        button.danger:hover {
+            background: #dc2626;
+        }
+
+        .result {
+            margin-top: 30px;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>⚠️ LocalStorage 초기화</h1>
+        <p>LocalStorage 용량이 초과되어 앱이 작동하지 않습니다.</p>
+        <p>아래 버튼을 클릭하여 초기화하세요.</p>
+
+        <button onclick="clearStorage()" class="danger">🗑️ LocalStorage 초기화</button>
+        <button onclick="window.location.href='/'">🏠 메인으로 돌아가기</button>
+
+        <div id="result" class="result"></div>
+    </div>
+
+    <script>
+        function clearStorage() {
+            const result = document.getElementById('result');
+
+            try {
+                // 모든 LocalStorage 삭제
+                localStorage.clear();
+
+                result.style.display = 'block';
+                result.innerHTML = `
+                    <h3 style="color: #10b981;">✅ 초기화 완료!</h3>
+                    <p>LocalStorage가 성공적으로 초기화되었습니다.</p>
+                    <p>이제 메인 페이지로 돌아가세요.</p>
+                `;
+
+                // 3초 후 자동으로 메인 페이지로 이동
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 3000);
+
+            } catch (e) {
+                result.style.display = 'block';
+                result.innerHTML = `
+                    <h3 style="color: #ef4444;">❌ 오류 발생</h3>
+                    <p>${e.message}</p>
+                `;
+            }
+        }
+
+        // 페이지 로드 시 현재 용량 표시
+        window.onload = () => {
+            let totalSize = 0;
+            for (let key in localStorage) {
+                if (localStorage.hasOwnProperty(key)) {
+                    totalSize += localStorage[key].length + key.length;
+                }
+            }
+
+            const sizeInMB = (totalSize / 1024 / 1024).toFixed(2);
+            document.querySelector('.container').innerHTML += `
+                <p style="margin-top: 30px; opacity: 0.7;">
+                    현재 사용량: ${sizeInMB} MB
+                </p>
+            `;
+        };
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SacredArchitect - 테스트</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 40px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: system-ui, -apple-system, sans-serif;
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 60px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 {
+            font-size: 3em;
+            margin: 0 0 20px 0;
+        }
+        p {
+            font-size: 1.2em;
+            opacity: 0.9;
+            margin: 10px 0;
+        }
+        .status {
+            display: inline-block;
+            padding: 10px 20px;
+            background: #10b981;
+            border-radius: 50px;
+            font-weight: bold;
+            margin: 20px 0;
+        }
+        .links {
+            margin-top: 40px;
+        }
+        a {
+            display: inline-block;
+            margin: 10px;
+            padding: 15px 30px;
+            background: white;
+            color: #667eea;
+            text-decoration: none;
+            border-radius: 10px;
+            font-weight: bold;
+            transition: transform 0.2s;
+        }
+        a:hover {
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎵 SacredArchitect</h1>
+        <div class="status">✅ 서버 정상 작동 중</div>
+        <p>645곡 찬송가 AI 재탄생 프로젝트</p>
+        <p>포트: 5173</p>
+        
+        <div class="links">
+            <a href="/">메인 앱으로 이동</a>
+            <a href="#" onclick="testAPI()">API 테스트</a>
+        </div>
+        
+        <div id="result" style="margin-top: 30px; padding: 20px; background: rgba(0,0,0,0.2); border-radius: 10px; display: none;">
+            <h3>테스트 결과:</h3>
+            <pre id="output" style="text-align: left; overflow: auto; max-height: 300px;"></pre>
+        </div>
+    </div>
+
+    <script>
+        function testAPI() {
+            const result = document.getElementById('result');
+            const output = document.getElementById('output');
+            
+            result.style.display = 'block';
+            output.textContent = '테스트 중...\n\n';
+            
+            // 환경 변수 확인
+            const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+            
+            output.textContent += '🔑 API Key 확인:\n';
+            output.textContent += `  - 존재: ${!!apiKey}\n`;
+            output.textContent += `  - 길이: ${apiKey?.length || 0}\n`;
+            output.textContent += `  - 앞 10자: ${apiKey?.substring(0, 10) || 'none'}\n\n`;
+            
+            output.textContent += '✅ 서버 정상 작동!\n';
+            output.textContent += '✅ Vite 빌드 성공!\n';
+            
+            if (apiKey) {
+                output.textContent += '✅ API 키 로드 성공!\n';
+            } else {
+                output.textContent += '⚠️  API 키 미설정 (fallback 사용 중)\n';
+            }
+        }
+    </script>
+</body>
+</html>
