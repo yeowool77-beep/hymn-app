@@ -63,12 +63,24 @@ export const PromptDisplay: React.FC<PromptDisplayProps> = ({ data, artLoadingSt
         </div>
         <div className="aspect-square rounded-2xl overflow-hidden border border-zinc-800 bg-zinc-900/50 relative group shadow-lg">
           {isLoading ? (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-zinc-900/80 backdrop-blur-sm">
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-zinc-900/80 backdrop-blur-sm z-10">
               <Loader2 className="w-6 h-6 animate-spin text-amber-500 mb-2" />
               <span className="text-[8px] font-black text-amber-500 uppercase tracking-tighter">Graphic Designing...</span>
             </div>
           ) : src ? (
-            <img src={src} alt={title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+            <div
+              className="relative w-full h-full cursor-pointer overflow-hidden group/image"
+              onClick={() => onRetryArt?.(lang)}
+              title={`Click to regenerate the ${lang.toUpperCase()} cover art`}
+            >
+              <img src={src} alt={title} className="w-full h-full object-cover transition-transform duration-700 group-hover/image:scale-105" />
+
+              {/* 재생성 호버 오버레이 */}
+              <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/image:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center backdrop-blur-sm">
+                <RefreshCw className="w-8 h-8 text-white mb-2" />
+                <span className="text-[10px] font-bold text-white uppercase tracking-widest bg-black/50 px-3 py-1 rounded-full border border-white/20">Regenerate</span>
+              </div>
+            </div>
           ) : isFailed ? (
             <div className="absolute inset-0 flex flex-col items-center justify-center bg-zinc-900/40 p-4 text-center">
               <button onClick={() => onRetryArt?.(lang)} className="p-3 bg-amber-500/20 border border-amber-500/40 rounded-full hover:bg-amber-500 transition-all group/btn mb-2">
@@ -97,7 +109,7 @@ export const PromptDisplay: React.FC<PromptDisplayProps> = ({ data, artLoadingSt
             <div className="flex gap-2 overflow-x-auto pb-1 custom-scrollbar-h">
               {data.sources.map((url, i) => (
                 <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-3 py-1.5 bg-zinc-800/50 border border-zinc-700/50 rounded-xl text-[9px] text-zinc-400 hover:text-white transition-all whitespace-nowrap">
-                  Source {i+1} <ExternalLink className="w-2.5 h-2.5 opacity-50" />
+                  Source {i + 1} <ExternalLink className="w-2.5 h-2.5 opacity-50" />
                 </a>
               ))}
             </div>
@@ -127,7 +139,7 @@ export const PromptDisplay: React.FC<PromptDisplayProps> = ({ data, artLoadingSt
             <span className="text-[8px] font-black text-zinc-500 uppercase tracking-widest">Search-Grounded</span>
           </div>
         </div>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-zinc-800">
           {(Object.entries(lyricsData) as [string, string][]).map(([lang, lyrics]) => {
             const currentTitle = titlesData[lang as keyof typeof titlesData];
@@ -160,9 +172,9 @@ export const PromptDisplay: React.FC<PromptDisplayProps> = ({ data, artLoadingSt
           <span className="text-[10px] font-black text-amber-500 uppercase tracking-widest block mb-4">Optimized Audio Prompt</span>
           <p className="font-mono text-lg text-white italic leading-relaxed pr-10">"{data.stylePrompt || "Calculating musical signature..."}"</p>
           <div className="flex gap-4 mt-8">
-            <button 
+            <button
               disabled={!data.stylePrompt}
-              onClick={() => copyToClipboard(data.stylePrompt, 'style')} 
+              onClick={() => copyToClipboard(data.stylePrompt, 'style')}
               className="flex items-center gap-3 px-8 py-4 bg-amber-500 hover:bg-amber-400 disabled:bg-zinc-800 disabled:text-zinc-600 text-black rounded-2xl font-black text-sm transition-all shadow-xl shadow-amber-500/20 active:scale-95"
             >
               {copiedStates['style'] ? <Check className="w-5 h-5" /> : <Copy className="w-5 h-5" />}
